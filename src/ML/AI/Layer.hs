@@ -6,12 +6,11 @@ import Data.Array.Accelerate.Matrix
 import ML.AI.Block
 import Prelude as P
 
-data One = One
-data Outp = Outp
-data Inp = Inp
+data One = One deriving(P.Eq)
+data Outp = Outp deriving(P.Eq)
+data Inp = Inp deriving(P.Eq)
 
-class (P.Num f, A.Elt f) => Layer l f where
+class (P.Fractional f, A.Elt f) => Layer l f where
     lweights :: l f -> AccMat f Outp Inp
     lbiases :: l f -> AccMat f Outp One
-    lGetBlock :: l f -> AccBlock f (l f)
-
+    l2Block :: l f -> AccBlock f (l f)

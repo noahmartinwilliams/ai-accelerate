@@ -28,6 +28,8 @@ library
       ML.AI.Block
       ML.AI.Layer
       ML.AI.Misc
+      ML.AI.Optim
+      ML.AI.Optim.GD
       ML.AI.Params
   other-modules:
       Paths_ai_accelerate
