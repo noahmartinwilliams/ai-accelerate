@@ -13,3 +13,4 @@ instance (P.Fractional f, A.Elt f) => Layer Params f where
     lweights p = pweights p
     lbiases p = pbiases p
     l2Block p@(Params { pweights = w, pbiases = b}) = appendAccBlocks (accMatGetBlock w (Outp, Inp)) (accMatGetBlock b (Outp, One)) p
+

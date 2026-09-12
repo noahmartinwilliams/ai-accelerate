@@ -43,10 +43,14 @@ library:
 tests:
   ai-accelerate-test:
     main:                Spec.hs
-    source-dirs:         test
+    source-dirs:         test/GdOptim
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
     - ai-accelerate
+    - matrix-accelerate
+    - accelerate
+    - accelerate-llvm-ptx
+    - random
