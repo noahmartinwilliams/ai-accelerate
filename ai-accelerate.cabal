@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       ML.AI.Block
+      ML.AI.ErrFn
       ML.AI.Layer
       ML.AI.Misc
       ML.AI.Optim

@@ -10,14 +10,15 @@ data One = One deriving(P.Eq)
 data Outp = Outp deriving(P.Eq)
 data Inp = Inp deriving(P.Eq)
 
-class (P.Fractional f, A.Elt f) => Layer l f where
-    lweights :: l f -> AccMat f Outp Inp
-    lbiases :: l f -> AccMat f Outp One
-    l2Block :: l f -> AccBlock f (l f)
+class (A.Fractional f) => Layer l f a b where
+    lweights :: l f a b -> AccMat f b a
+    lbiases :: l f a b -> AccMat f b One
+    l2block :: l f a b -> AccBlock f (l f a b)
+    block2l :: AccBlock f (l f a b ) -> a -> b -> (l f a b, AccBlock f (l f a b))
 
 
-inferLayer :: (A.Num f, Layer l f) => l f -> AccMat f Inp One -> AccMat f Outp One
+inferLayer :: (Layer l f a b ) => l f a b -> AccMat f a One -> AccMat f b One
 inferLayer p inp = do
     let w = lweights p
-        b = lbiases p 
-    (w `matMul` inp) `matAdd` b
+        biases = lbiases p 
+    (w `matMul` inp) `matAdd` biases
