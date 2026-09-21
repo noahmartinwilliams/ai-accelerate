@@ -1,0 +1,18 @@
+{-# LANGUAGE ScopedTypeVariables, FlexibleContexts #-}
+module ML.AI.ActFuncs where
+
+import Data.Array.Accelerate as A
+import Data.Array.Accelerate.Matrix
+import Prelude as P
+
+data ActFunc = Sigmoid deriving(Show, P.Eq)
+
+actFunc :: (A.Floating f, A.Fractional f, P.Fractional f) => ActFunc -> AccMat f a b -> AccMat f a b
+actFunc Sigmoid x = let one = constant 1.0 in matMap x (\w -> one / (one + (exp (-w))))
+
+dactFunc :: (A.Floating f, A.Fractional f, P.Fractional f) => ActFunc -> AccMat f a b -> AccMat f a b
+dactFunc Sigmoid x = do
+    let one = constant 1.0
+        e y = exp (-y)
+        e' y = (e y) + one
+    matMap x (\z -> (e z) / ((e' z) * (e' z))) 

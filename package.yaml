@@ -54,3 +54,4 @@ tests:
     - accelerate
     - accelerate-llvm-ptx
     - random
+    - deepseq

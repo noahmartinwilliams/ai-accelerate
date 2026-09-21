@@ -25,13 +25,13 @@ source-repository head
 
 library
   exposed-modules:
+      ML.AI.ActFuncs
       ML.AI.Block
       ML.AI.ErrFn
       ML.AI.Layer
       ML.AI.Misc
       ML.AI.Optim
       ML.AI.Optim.GD
-      ML.AI.Params
   other-modules:
       Paths_ai_accelerate
   autogen-modules:
@@ -60,6 +60,7 @@ test-suite ai-accelerate-test
     , accelerate-llvm-ptx
     , ai-accelerate
     , base >=4.7 && <5
+    , deepseq
     , matrix-accelerate
     , random
   default-language: Haskell2010
