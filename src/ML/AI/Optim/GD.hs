@@ -7,30 +7,33 @@ import ML.AI.Block
 import ML.AI.Layer
 import ML.AI.Misc
 import ML.AI.Optim
-import Prelude as P
+import ML.AI.Types
 
 data GradDescOptim f a b = GradDescOptim { gdoLR :: Exp f }
 
-data Unk = Unk
 
-instance forall f a b. ( A.Num f) => Optim GradDescOptim f a b where
+instance forall f a b. ( A.Floating f) => Optim GradDescOptim f a b where
+    optimBuildForMat gdo _ = gdo
+
     optim gdo@(GradDescOptim { gdoLR = lr}) params dw = do
         let params' = params `matSub` (lr `matScale` dw)
         (gdo, params')
 
-    optim2block (GradDescOptim { gdoLR = lr }) = do
+    optim2block (GradDescOptim { gdoLR = lr }) a = do
         let vi = use (A.fromList (Z:.0) [] :: Vector Int)
             vd = rep0 (constant 1) (A.unit lr)
-        A.lift (vi, vd)
+        AccBlock (A.lift (vi, vd)) a
 
-    block2optim block = do
-        let (_, vd) = A.unlift block :: (Acc (Vector Int), Acc (Vector f))
+    block2optim (AccBlock block _) d = do
+        let (vi, vd) = A.unlift block :: (Acc (Vector Int), Acc (Vector f))
             lr = vd A.!! (constant 0)
-        GradDescOptim { gdoLR = lr }
+            vd' = A.drop (constant 1) vd
+        (GradDescOptim { gdoLR = lr }, AccBlock (A.lift (vi, vd')) d)
 
+{-
 gdOptim :: forall f. (A.Num f) => Acc (Vector Int, Vector f) -> Acc (Matrix f) -> Acc (Matrix f) -> Acc ((Vector Int, Vector f), (Matrix f))
 gdOptim optimizer params grads = do
     let optimizer' = block2optim optimizer :: GradDescOptim f Unk Unk
         (optimizer'', (AccMat params' _ _ )) = optim optimizer' (AccMat params Unk Unk) (AccMat grads Unk Unk)
     A.lift (optim2block optimizer'', params')
-
+-}

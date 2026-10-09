@@ -38,10 +38,12 @@ library:
   dependencies:
   - accelerate
   - matrix-accelerate
+  - random
+  - normaldistribution
 
 
 tests:
-  ai-accelerate-test:
+  GdOptim:
     main:                Spec.hs
     source-dirs:         test/GdOptim
     ghc-options:
@@ -55,3 +57,19 @@ tests:
     - accelerate-llvm-ptx
     - random
     - deepseq
+
+  GdOptim2:
+    main:                Spec.hs
+    source-dirs:         test/GdOptim2
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - ai-accelerate
+    - matrix-accelerate
+    - accelerate
+    - accelerate-llvm-ptx
+    - random
+    - deepseq
+    - normaldistribution

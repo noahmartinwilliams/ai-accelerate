@@ -14,7 +14,7 @@ errFn MSEFn = do
         fn x y = matMap (squared (x `matSub` y)) (\z -> z * half)
     fn
 
-derrFn :: forall f a b. (P.Fractional f, A.Num f) => ErrFn -> (AccMat f a b -> AccMat f a b -> AccMat f a b)
+derrFn :: forall f a b. (A.Num f) => ErrFn -> (AccMat f a b -> AccMat f a b -> AccMat f a b)
 derrFn MSEFn = do
     let fn x y = matMap (x `matSub` y) (\z -> - z )
     fn

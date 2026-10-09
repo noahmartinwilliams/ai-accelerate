@@ -5,18 +5,14 @@ import Data.Array.Accelerate as A
 import Data.Array.Accelerate.Matrix
 import ML.AI.Block
 import ML.AI.Misc
-import Prelude as P
-
-data One = One deriving(P.Eq)
-data Outp = Outp deriving(P.Eq)
-data Inp = Inp deriving(P.Eq)
+import ML.AI.Types
 
 data Layer f a b = Layer { lweights :: AccMat f b a, lbiases :: AccMat f b One }
 
-l2block :: (P.Fractional f, A.Fractional f) => Layer f a b -> AccBlock f (Layer f a b)
+l2block :: (A.Fractional f) => Layer f a b -> AccBlock f (Layer f a b)
 l2block l@(Layer { lweights = w, lbiases = b}) = appendAccBlocks (accMatGetBlock w (Outp, Inp)) (accMatGetBlock b (Outp, One)) l
 
-l2block' :: (P.Fractional f, A.Fractional f) => Layer f a b -> Acc (Vector Int, Vector f)
+l2block' :: (A.Fractional f) => Layer f a b -> Acc (Vector Int, Vector f)
 l2block' l = do
     let (AccBlock ret _ ) = l2block l
     ret
@@ -47,3 +43,11 @@ inferLayer p inp = do
     let w = lweights p
         biases = lbiases p 
     (w `matMul` inp) `matAdd` biases
+
+gradLayer :: (A.Fractional f) => Layer f a b -> AccMat f a One -> AccMat f b One -> (AccMat f b a, AccMat f b One, AccMat f a One)
+gradLayer l prevInp bp = do
+    let lw = matTransp (prevInp `matMul` (matTransp bp))
+        lb = bp
+        bp' = ( (matTransp (lweights l)) `matMul` bp)
+    (lw, lb, bp')
+    

@@ -6,10 +6,12 @@ import Data.Array.Accelerate.Matrix
 import Data.Array.Accelerate.Interpreter as PTX
 import GHC.Conc
 import ML.AI.ActFuncs
+import ML.AI.Block
 import ML.AI.ErrFn
 import ML.AI.Layer
 import ML.AI.Optim
 import ML.AI.Optim.GD
+import ML.AI.Types
 import Prelude as P
 import System.Exit
 import System.IO
@@ -32,25 +34,27 @@ testLine fn ((x, y) : rest) = do
         predicted' = sigmoidD predicted
     ((y - predicted') * (y - predicted')) + (testLine fn rest)
 
-accTrainer :: ErrFn -> Acc (Vector Int, Vector Double) -> Acc (Vector Int, Vector Double) -> Acc (Vector Int, Vector Double) -> Acc (Matrix Double, Matrix Double) -> Acc ((Vector Int, Vector Double), (Vector Int, Vector Double), (Vector Int, Vector Double))
+accTrainer :: ErrFn -> Acc (Block Double) -> Acc (Block Double) -> Acc (Block Double) -> Acc (Matrix Double, Matrix Double) -> Acc ((Block Double), (Block Double), (Block Double))
 accTrainer efn block optimBlockW optimBlockB sample = do
     let (inp, outp) = A.unlift sample
         outpA = AccMat outp Outp One
         (layer, _) = block2l' block Inp Outp
         x = inferLayer layer (AccMat inp Inp One)
         e = derrFn efn outpA (actFunc Sigmoid x)
-        woptim = block2optim optimBlockW :: GradDescOptim Double Outp Inp
-        boptim = block2optim optimBlockB :: GradDescOptim Double Outp One
+        (woptim, _) = block2optim (AccBlock optimBlockW One) One :: (GradDescOptim Double Outp Inp, AccBlock Double One)
+        (boptim, _) = block2optim (AccBlock optimBlockB One) One :: (GradDescOptim Double Outp One, AccBlock Double One)
         lw = lweights layer
         lb = lbiases layer
         dw = ((matTransp lw) `matMul` (dactFunc Sigmoid x)) `matMul` (matTransp e)
         (woptim', lw') = optim woptim lw (matTransp dw)
         (boptim', lb') = optim boptim lb e
         block' = l2block' (Layer { lweights = lw', lbiases = lb' })
-    A.lift (block', optim2block woptim', optim2block boptim')
+        (AccBlock woptim'' _) = optim2block woptim' One
+        (AccBlock boptim'' _) = optim2block boptim' One
+    A.lift (block',  woptim'', boptim'')
 
 
-trainer :: ((Vector Int, Vector Double) -> (Vector Int, Vector Double) -> (Vector Int, Vector Double) -> (Matrix Double, Matrix Double) -> ((Vector Int, Vector Double), (Vector Int, Vector Double), (Vector Int, Vector Double))) -> (Vector Int, Vector Double) -> (Vector Int, Vector Double) -> (Vector Int , Vector Double) -> [(Matrix Double, Matrix Double)] -> (Vector Int, Vector Double)
+trainer :: (Block Double -> Block Double -> Block Double -> (Matrix Double, Matrix Double) -> ((Block Double), (Block Double), (Block Double))) -> Block Double -> Block Double -> Block Double -> [(Matrix Double, Matrix Double)] -> Block Double
 trainer _ p _ _ [] = p
 trainer tfn params optimW optimB (h : t)= do
     let (params', optimW', optimB') = tfn params optimW optimB h
@@ -85,11 +89,11 @@ main = do
         p = Layer { lweights = (AccMat (use (A.fromList (Z:.1:.1) [10.0])) Outp Inp), lbiases = (AccMat (use (A.fromList (Z:.1:.1) [9.0])) Outp One)}
         fn = PTX.runN (\x -> let (AccMat y _ _ ) = inferLayer p (AccMat x Inp One) in y)
         rands = randoms seed :: [Int]
-        perfectLine = force (mkPerfectLine (-10.0) 10.0 2048)
+        perfectLine = force (mkPerfectLine 0.0 1.0 2048)
         perfectLine' = shuffle rands (P.map (\(x, y) -> (A.fromList (Z:.1:.1) [x], A.fromList (Z:.1:.1) [y])) perfectLine)
         testResults = testLine fn perfectLine 
-        optimizerW = PTX.run (optim2block (GradDescOptim { gdoLR = (constant 0.001 :: Exp Double)}))
-        optimizerB = PTX.run (optim2block (GradDescOptim { gdoLR = (constant 0.001 :: Exp Double)}))
+        optimizerW = PTX.run (let (AccBlock x _) = (optim2block (GradDescOptim { gdoLR = (constant 0.001 :: Exp Double)}) One) in x)
+        optimizerB = PTX.run (let (AccBlock x _) = (optim2block (GradDescOptim { gdoLR = (constant 0.001 :: Exp Double)}) One) in x)
         trainFn = PTX.runN (accTrainer MSEFn)
         newModel = trainer trainFn (PTX.run (l2block' p)) optimizerW optimizerB (force perfectLine')
         (newModelLayer, _) = block2l' (use newModel) Inp Outp 
