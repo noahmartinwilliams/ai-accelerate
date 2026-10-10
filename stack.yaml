@@ -87,3 +87,5 @@ extra-deps:
     subdirs:
       - cuda
       - cuda-runtime
+  - git: https://github.com/noahmartinwilliams/megaparsec-csv.git
+    commit: 1ca56fefe9792c81e6f4b82bb1f64956d5c1cb11
