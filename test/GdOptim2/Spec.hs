@@ -67,11 +67,11 @@ main = do
     let g = mkStdGen 100
         g' = mkStdGen 101
         (bli, ann) = mkANN g 2 Sigmoid [(4, Sigmoid), (3, Sigmoid), (1, Sigmoid)] AInp AOutp
-    let opt = GradDescOptim { gdoLR = constant 0.001} :: GradDescOptim Double AOutp AInp
+        opt = GradDescOptim { gdoLR = constant 0.001} :: GradDescOptim Double AOutp AInp
         opt' = GradDescOptim { gdoLR = constant 0.001 } :: GradDescOptim Double AOutp One
         optAnn = mkOptimANN ann opt  opt'
         (AccBlock optBlock _) = annOptim2block optAnn
-    let samps = mkSamples g'
+        samps = mkSamples g'
         samps' = mkMats samps
         sampsTest = P.take 1024 samps'
         sampsTrain = P.take 1024 (P.drop 1024 samps')

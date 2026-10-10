@@ -24,16 +24,9 @@ instance forall f a b. ( A.Floating f) => Optim GradDescOptim f a b where
             vd = rep0 (constant 1) (A.unit lr)
         AccBlock (A.lift (vi, vd)) a
 
-    block2optim (AccBlock block _) d = do
+    block2optim (AccBlock block _) _ _ d = do
         let (vi, vd) = A.unlift block :: (Acc (Vector Int), Acc (Vector f))
             lr = vd A.!! (constant 0)
             vd' = A.drop (constant 1) vd
-        (GradDescOptim { gdoLR = lr }, AccBlock (A.lift (vi, vd')) d)
+        (GradDescOptim { gdoLR = lr } , AccBlock (A.lift (vi, vd')) d)
 
-{-
-gdOptim :: forall f. (A.Num f) => Acc (Vector Int, Vector f) -> Acc (Matrix f) -> Acc (Matrix f) -> Acc ((Vector Int, Vector f), (Matrix f))
-gdOptim optimizer params grads = do
-    let optimizer' = block2optim optimizer :: GradDescOptim f Unk Unk
-        (optimizer'', (AccMat params' _ _ )) = optim optimizer' (AccMat params Unk Unk) (AccMat grads Unk Unk)
-    A.lift (optim2block optimizer'', params')
--}

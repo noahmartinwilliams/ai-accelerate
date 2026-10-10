@@ -48,7 +48,7 @@ splitOptimANN (OptimANN layers a b) = do
     (optimizerBlock, ANN alayers a b)
 
     
-inferANNLayer :: (P.Fractional f, A.Floating f) => AccMat f a One -> [ ANNLayer f a b ] -> ([AccMat f a One], AccMat f a One)
+inferANNLayer :: (P.Fractional f, A.Floating f, A.Ord f) => AccMat f a One -> [ ANNLayer f a b ] -> ([AccMat f a One], AccMat f a One)
 inferANNLayer inp [] = ([], inp)
 inferANNLayer inp@(AccMat _ inpType _) (h : t) = do
     let x@(AccMat x' _ One) = inferLayer (annL h) inp
@@ -57,14 +57,14 @@ inferANNLayer inp@(AccMat _ inpType _) (h : t) = do
         (restList, (AccMat outp' _ One)) = inferANNLayer (AccMat outp inpType One) t
     ((AccMat x' inpType One) : restList, (AccMat outp' inpType One))
 
-inferANN :: (P.Fractional f, A.Floating f) => ANN f a b -> AccMat f a One -> ([AccMat f a One], AccMat f a One)
+inferANN :: (P.Fractional f, A.Floating f, A.Ord f) => ANN f a b -> AccMat f a One -> ([AccMat f a One], AccMat f a One)
 inferANN (ANN ls _ _) inp = inferANNLayer inp ls
 
-inferOptimANN :: (P.Fractional f) => AccMat f a One -> OptimANN o o' f a b -> ([AccMat f a One], AccMat f b One)
+inferOptimANN :: (P.Fractional f, A.Ord f) => AccMat f a One -> OptimANN o o' f a b -> ([AccMat f a One], AccMat f b One)
 inferOptimANN inp (OptimANN ls a b ) = let ann = ANN (P.map oalLayer ls) a b in
     let (r, AccMat outp _ _ ) = inferANN ann inp in (r, AccMat outp b One)
 
-gradANN :: (P.Fractional f, A.Floating f) => ANN f a b -> [AccMat f a One] -> AccMat f b One -> ([(AccMat f b a, AccMat f b One)], AccMat f a One)
+gradANN :: (P.Fractional f, A.Floating f, A.Ord f) => ANN f a b -> [AccMat f a One] -> AccMat f b One -> ([(AccMat f b a, AccMat f b One)], AccMat f a One)
 gradANN (ANN _ a _)  [] (AccMat amat _ _) = ([], AccMat amat a One)
 gradANN (ANN [] _ _ ) _ (AccMat _ _ _) = undefined
 gradANN (ANN (ah : at) a b) (h : t) bp = do
@@ -75,7 +75,7 @@ gradANN (ANN (ah : at) a b) (h : t) bp = do
         (wg, bg, bprop'') = gradLayer (annL ah) h dbp
     ((wg, bg) : l, bprop'')
 
-gradOptimANN :: (P.Fractional f, A.Fractional f) => OptimANN o o' f a b -> [AccMat f a One] -> AccMat f b One -> ([(AccMat f b a, AccMat f b One)], AccMat f a One)
+gradOptimANN :: (P.Fractional f, A.Fractional f, A.Ord f) => OptimANN o o' f a b -> [AccMat f a One] -> AccMat f b One -> ([(AccMat f b a, AccMat f b One)], AccMat f a One)
 gradOptimANN (OptimANN ls a b) ls' bp = let ann = (ANN (P.map oalLayer ls) a b) in gradANN ann ls' bp
 
 mkANN :: forall f a b. (A.Floating f, Random f, P.Floating f) => StdGen -> Int -> ActFunc -> [(Int, ActFunc)] -> a -> b -> (ANNBlInfo, ANN f a b)
@@ -85,7 +85,7 @@ mkANN' :: forall f a b. (A.Floating f, Random f, P.Floating f) => StdGen -> Int 
 mkANN' _ _ _ [] a b = (ANNBlInfo [], ANN [] a b)
 mkANN' g numInputs firstAF ((numOuts, af) : layerSpecRest) a b = do
     let numWeights = numInputs * numOuts
-    let rs = normals g :: (P.Floating f, Random f) => [f]
+    let rs = normals g :: [f]
         g' = mkStdGen ((randoms g :: [Int]) P.!! 0)
         rs' = heWeightInit numInputs (P.take (numWeights + numOuts) rs)
         rsW = P.take numWeights rs'
@@ -152,8 +152,8 @@ block2annOptim :: forall f o o' a b. (Optim o f b a, Optim o' f b One, A.Floatin
 block2annOptim (ANNBlInfo []) (AccBlock _ (ANNBlock, a, b)) = OptimANN [] a b
 block2annOptim (ANNBlInfo (blinfo : rest)) ablock@(AccBlock _ (ANNBlock, a, b)) = do
     let (l, r) = block2annLayer blinfo ablock
-        (wo, r') = block2optim r (ANNBlock, a, b)
-        (bo, r'') = block2optim r' (ANNBlock, a, b)
+        (wo, r') = block2optim r b a (ANNBlock, a, b)
+        (bo, r'') = block2optim r' b One (ANNBlock, a, b)
         (OptimANN lrest _ _) = block2annOptim (ANNBlInfo rest) r'' 
     (OptimANN ((OptimANNLayer { oalLayer = l, oalweights = wo, oalbiases = bo}) : lrest) a b)
 

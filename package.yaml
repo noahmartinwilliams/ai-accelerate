@@ -73,3 +73,19 @@ tests:
     - random
     - deepseq
     - normaldistribution
+
+  MomOptim:
+    main:                Spec.hs
+    source-dirs:         test/MomOptim/
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - ai-accelerate
+    - matrix-accelerate
+    - accelerate
+    - accelerate-llvm-ptx
+    - random
+    - deepseq
+    - normaldistribution
