@@ -1,6 +1,6 @@
 # For downloading and preprocessing data.
 
-all: data/food-calories/weight_loss.csv
+all: data/food-calories/weight_loss.csv data/mnist/mnist-dataset.zip
 	echo "done"
 
 data/food-calories/weight_loss.csv: data/food-calories/food-calories.zip
@@ -13,6 +13,19 @@ data/food-calories/food-calories.zip:
 	curl -L -o ./data/food-calories/food-calories.zip https://www.kaggle.com/api/v1/datasets/download/samartalwar/fast-food-calorie-shock-food-vs-workout-burn
 	# Acquired from here: https://www.kaggle.com/datasets/samartalwar/fast-food-calorie-shock-food-vs-workout-burn/data?select=fast_food_cheat_meal_workout_burn.csv
 	# Uploaded by Samar Talwar
+
+
+data/mnist/mnist-dataset.zip:
+	curl -L -o ./data/mnist/mnist-dataset.zip https://www.kaggle.com/api/v1/datasets/download/hojjatk/mnist-dataset
+	unzip data/mnist/mnist-dataset.zip
+	mv train-* data/mnist/
+	mv t10k-* data/mnist/
+	# Acquired from here: https://www.kaggle.com/datasets/hojjatk/mnist-dataset?select=t10k-images-idx3-ubyte
+	# Uploaded by Hojjat Khodabakhsh
+	# Made by:
+	# Yann LeCun, Courant Institute, NYU
+	# Corinna Cortes, Google Labs, New York
+	# Christopher J.C. Burges, Microsoft Research, Redmond
 
 .PHONY:
 clean:
