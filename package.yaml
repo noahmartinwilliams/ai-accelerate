@@ -89,3 +89,19 @@ tests:
     - random
     - deepseq
     - normaldistribution
+
+  RMSOptim:
+    main:                Spec.hs
+    source-dirs:         test/RMSOptim/
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - ai-accelerate
+    - matrix-accelerate
+    - accelerate
+    - accelerate-llvm-ptx
+    - random
+    - megaparsec
+    - megaparsec-csv
