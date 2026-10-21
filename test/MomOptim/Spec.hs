@@ -4,6 +4,7 @@ import Data.Array.Accelerate as A
 import Data.Array.Accelerate.Matrix
 import Data.Array.Accelerate.Interpreter
 import Data.Random.Normal
+import List.Shuffle
 import ML.AI.ActFuncs
 import ML.AI.ANN
 import ML.AI.Block
@@ -41,7 +42,7 @@ trainer' bli ann samp = do
         trueOut' = AccMat trueOut Outp One
         bp = derrFn MSEFn (AccMat outp Outp One) trueOut'
         (grads, _) = gradOptimANN annTyped prevIns bp
-        ann' = bpANN annTyped grads
+        ann' = bpANN annTyped (grad2block grads Inp)
         (AccBlock ann'' _) = annOptim2block ann'
     ann''
 
@@ -56,19 +57,21 @@ tester fn ((hi, ho) : t) = do
 main :: IO ()
 main = do
     let g = mkStdGen 100 
-        opt = MomentOptim { momoAlpha = constant 0.01, momoBeta = constant 0.9, momoVelocity = AccMat (use (A.fromList (Z:.1:.1) [0.0])) Outp Inp }
-        opt2 = MomentOptim { momoAlpha = constant 0.01, momoBeta = constant 0.9, momoVelocity = AccMat (use (A.fromList (Z:.1:.1) [0.0])) Outp One }
-        (bli, ann) = mkANN g 2 ReLU [(4, ReLU), (3, ReLU), (1, Sigmoid)] Inp Outp
+        g' = mkStdGen 101
+        opt = MomentOptim { momoAlpha = constant 0.0001, momoBeta = constant 0.999, momoVelocity = AccMat (use (A.fromList (Z:.1:.1) [0.0])) Outp Inp }
+        opt2 = MomentOptim { momoAlpha = constant 0.0001, momoBeta = constant 0.999, momoVelocity = AccMat (use (A.fromList (Z:.1:.1) [0.0])) Outp One }
+        (bli, ann) = mkANN g 2 ReLU [(4, ReLU), (1, Sigmoid)] Inp Outp
         optANN = mkOptimANN ann opt opt2
         (AccBlock optBlock _) = annOptim2block optANN
         samps = mkSamples g
         samps' = mkMats samps
         trainFn = runN (trainer' bli)
-        sampsTest = P.take 1024 samps'
-        sampsTrain = P.take 1024 (P.drop 1024 samps')
+        sampsTest = P.take 512 samps'
+        sampsTrain = P.take 4096 (P.drop 512 samps')
+        sampsTrain' = shuffle_ sampsTrain g'
         firstAttemptFn = runN (\x -> let (_, (AccMat outp _ _)) = inferANN ann (AccMat x Inp One) in outp)
         firstAttempt = tester firstAttemptFn sampsTest
-        trained = trainer trainFn (run optBlock) sampsTrain
+        trained = trainer trainFn (run optBlock) sampsTrain'
         (_, trained') = splitOptimANN (block2annOptim bli (AccBlock (use trained) (ANNBlock, Inp, Outp)) :: OptimANN MomentOptim  MomentOptim Double Inp Outp)
         trained'' = run (let (AccBlock x _) = P.snd (ann2block trained') in x)
         secondAttemptFn = runN (\x -> let (_, (AccMat outp _ _)) = inferANN (block2ann bli (AccBlock (use trained'') (ANNBlock, Inp, Outp))) (AccMat x Inp One) in outp) 

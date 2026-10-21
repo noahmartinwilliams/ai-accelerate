@@ -9,21 +9,21 @@ import ML.AI.Optim
 import ML.AI.Types
 import Prelude as P
 
-data RMSOptim f a b = RMSOptim { rmsAlpha :: Exp f, rmsGamma :: Exp f, rmsGradAvg :: AccMat f a b} 
+data RMSOptim f a b = RMSOptim { rmsoAlpha :: Exp f, rmsoGamma :: Exp f, rmsoGradAvg :: AccMat f a b} 
 
 instance forall f a b. (P.Fractional f, A.Floating f) => Optim RMSOptim f a b where
     optimBuildForMat rmsOptim (AccMat f a b) = do
         let sh = A.shape f
             mat' = A.fill sh (constant 0.0) 
-        rmsOptim { rmsGradAvg = AccMat mat' a b}
+        rmsOptim { rmsoGradAvg = AccMat mat' a b}
 
-    optim rmsOptim@(RMSOptim { rmsAlpha = alpha, rmsGamma = gamma, rmsGradAvg = avgGrad }) params dw = do
+    optim rmsOptim@(RMSOptim { rmsoAlpha = alpha, rmsoGamma = gamma, rmsoGradAvg = avgGrad }) params dw = do
         let avgGrad' = (avgGrad `matAdd` (gamma `matScale` avgGrad) ) `matAdd` (((constant 1.0) - gamma) `matScale` (dw `matZipMul` dw))
             alphaed = matMap avgGrad (\x -> alpha / (sqrt x))
             params' = params `matSub` (alphaed `matZipMul` dw)
-        (rmsOptim { rmsGradAvg = avgGrad' }, params')
+        (rmsOptim { rmsoGradAvg = avgGrad' }, params')
 
-    optim2block (RMSOptim { rmsAlpha = alpha, rmsGamma = gamma, rmsGradAvg = gradAvg }) c = do
+    optim2block (RMSOptim { rmsoAlpha = alpha, rmsoGamma = gamma, rmsoGradAvg = gradAvg }) c = do
         let bl = accMatGetBlock gradAvg c
             one = constant 1
             vd = (rep0 one (A.unit alpha)) A.++ (rep0 one (A.unit gamma))
@@ -40,4 +40,4 @@ instance forall f a b. (P.Fractional f, A.Floating f) => Optim RMSOptim f a b wh
             vd' = A.drop (constant 2) vd
             block' = A.lift (vi', vd')
             (m, block'') = accBlockGetMat (AccBlock block' Unk) a b d
-        (RMSOptim { rmsAlpha = alpha, rmsGamma = gamma, rmsGradAvg = m }, block'')
+        (RMSOptim { rmsoAlpha = alpha, rmsoGamma = gamma, rmsoGradAvg = m }, block'')

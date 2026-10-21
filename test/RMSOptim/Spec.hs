@@ -40,7 +40,7 @@ trainer bli optimANN sample = do
         (grads, realOutp) = inferOptimANN inp' optimANN'
         err = (derrFn MSEFn ) (AccMat outp Outp One) realOutp
         (gradiented, _) = gradOptimANN optimANN' grads err
-        bped = bpANN optimANN' gradiented
+        bped = bpANN optimANN' (grad2block gradiented Inp)
         (AccBlock ret _) = annOptim2block bped
     ret
 
@@ -66,8 +66,8 @@ main = do
                 samps = mkSamps parsed''
                 sampsTrain = P.drop 20 samps
                 sampsTest = P.take 20 samps
-                opt = RMSOptim { rmsAlpha = constant 0.001, rmsGamma = constant 0.9, rmsGradAvg = AccMat (use (A.fromList (Z:.1:.1) [1.0])) Outp Inp}
-                opt' = RMSOptim { rmsAlpha = constant 0.001, rmsGamma = constant 0.9, rmsGradAvg = AccMat (use (A.fromList (Z:.1:.1) [1.0])) Outp One}
+                opt = RMSOptim { rmsoAlpha = constant 0.001, rmsoGamma = constant 0.9, rmsoGradAvg = AccMat (use (A.fromList (Z:.1:.1) [1.0])) Outp Inp}
+                opt' = RMSOptim { rmsoAlpha = constant 0.001, rmsoGamma = constant 0.9, rmsoGradAvg = AccMat (use (A.fromList (Z:.1:.1) [1.0])) Outp One}
                 optAnn = mkOptimANN ann opt opt'
                 trainerFn = runN (trainer bli)
                 (AccBlock obl _) = annOptim2block optAnn

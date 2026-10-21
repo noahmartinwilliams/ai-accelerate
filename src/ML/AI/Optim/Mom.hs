@@ -28,9 +28,12 @@ instance forall f a b. (P.Fractional f, A.Floating f) => Optim MomentOptim f a b
             firstInt = (rep0 (constant 1) (A.unit (constant 2))) 
         appendAccBlocks (AccBlock (A.lift (firstInt, firstFewFs)) c) matFs c
 
-    block2optim blk@(AccBlock block _) a b d = do
-        let (_, vd) = A.unlift block :: (Acc (Vector Int), Acc (Vector f))
+    block2optim (AccBlock block typ) a b d = do
+        let (vi, vd) = A.unlift block :: (Acc (Vector Int), Acc (Vector f))
+            vi' = A.drop (constant 1) vi
         let alpha = vd A.!! (constant 0)
             beta = vd A.!! (constant 1)
-            (optim', rest) = accBlockGetMat blk a b d
+            vd' = A.drop (constant 2) vd
+            blk' = AccBlock (A.lift (vi', vd')) typ
+            (optim', rest) = accBlockGetMat blk' a b d
         (MomentOptim { momoAlpha = alpha, momoBeta = beta, momoVelocity = optim'}, rest)

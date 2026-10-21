@@ -4,11 +4,8 @@ module ML.AI.Optim where
 import Data.Array.Accelerate as A
 import Data.Array.Accelerate.Matrix
 import ML.AI.Block
-import ML.AI.Layer
 import ML.AI.Types
 import Prelude as P
-
-data OptimType f a b = OTGD (Exp f) deriving(Show, P.Eq)
 
 class (  P.Num (Exp f), A.Elt f) => Optim o f a b where
     optimBuildForMat :: o f a b -> AccMat f a b -> o f a b

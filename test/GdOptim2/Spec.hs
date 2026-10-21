@@ -38,7 +38,7 @@ trainANN ann sample = do
         trueOut' = AccMat trueOut AOutp One
         bp = ((derrFn MSEFn ) (AccMat outp AOutp One) trueOut')
         (grads, _) = gradOptimANN ann prevIns bp
-        ann' = bpANN ann grads
+        ann' = bpANN ann (grad2block grads AInp)
     ann'
         
 trainANN' :: ANNBlInfo -> Acc (Vector Int, Vector Double) -> Acc (Matrix Double, Matrix Double) -> Acc (Vector Int, Vector Double)

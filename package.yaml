@@ -89,6 +89,7 @@ tests:
     - random
     - deepseq
     - normaldistribution
+    - list-shuffle
 
   RMSOptim:
     main:                Spec.hs
@@ -105,3 +106,21 @@ tests:
     - random
     - megaparsec
     - megaparsec-csv
+
+  AdamOptim:
+    main:                Spec.hs
+    source-dirs:         test/AdamOptim/
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - ai-accelerate
+    - matrix-accelerate
+    - accelerate
+    - accelerate-llvm-ptx
+    - accelerate-llvm-native
+    - random
+    - bytestring
+    - text
+    - deepseq
