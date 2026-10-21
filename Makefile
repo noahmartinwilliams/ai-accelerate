@@ -16,6 +16,7 @@ data/food-calories/food-calories.zip:
 
 
 data/mnist/mnist-dataset.zip:
+	mkdir data/mnist/
 	curl -L -o ./data/mnist/mnist-dataset.zip https://www.kaggle.com/api/v1/datasets/download/hojjatk/mnist-dataset
 	unzip data/mnist/mnist-dataset.zip
 	mv train-* data/mnist/
