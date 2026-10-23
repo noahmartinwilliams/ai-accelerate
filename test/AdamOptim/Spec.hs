@@ -2,7 +2,7 @@
 module Main where
 
 import Data.Array.Accelerate as A
-import Data.Array.Accelerate.LLVM.PTX -- Change to "import Data.Array.Accelerate.LLVM.Native" if you don't have a GPU.
+import Data.Array.Accelerate.LLVM.Native -- Change to "import Data.Array.Accelerate.LLVM.Native" if you don't have a GPU.
 import Data.Array.Accelerate.Matrix
 
 import Data.ByteString as BS
@@ -11,7 +11,9 @@ import ML.AI.ActFuncs
 import ML.AI.ANN
 import ML.AI.Block
 import ML.AI.ErrFn
+import ML.AI.Grad
 import ML.AI.Layer
+import ML.AI.OptimANN
 import ML.AI.Optim.Adam
 import ML.AI.Optim.Mom
 import ML.AI.Optim.RMS

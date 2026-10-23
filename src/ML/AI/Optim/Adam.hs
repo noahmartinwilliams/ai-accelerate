@@ -4,8 +4,10 @@ module ML.AI.Optim.Adam where
 import Data.Array.Accelerate as A
 import Data.Array.Accelerate.Matrix
 import ML.AI.Block
+import ML.AI.Layer
 import ML.AI.Misc
 import ML.AI.Optim
+import ML.AI.OptimANN
 import ML.AI.Optim.Mom
 import ML.AI.Optim.RMS
 import ML.AI.Types

@@ -25,10 +25,12 @@ source-repository head
 
 library
   exposed-modules:
+      ML.AI
       ML.AI.ActFuncs
       ML.AI.ANN
       ML.AI.Block
       ML.AI.ErrFn
+      ML.AI.Grad
       ML.AI.Layer
       ML.AI.Misc
       ML.AI.Optim
@@ -36,6 +38,7 @@ library
       ML.AI.Optim.GD
       ML.AI.Optim.Mom
       ML.AI.Optim.RMS
+      ML.AI.OptimANN
       ML.AI.Types
   other-modules:
       Paths_ai_accelerate

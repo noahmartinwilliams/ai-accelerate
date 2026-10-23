@@ -9,7 +9,9 @@ import ML.AI.ActFuncs
 import ML.AI.ANN
 import ML.AI.Block
 import ML.AI.ErrFn
+import ML.AI.Grad
 import ML.AI.Optim
+import ML.AI.OptimANN
 import ML.AI.Optim.GD
 import ML.AI.Types
 import Prelude as P
