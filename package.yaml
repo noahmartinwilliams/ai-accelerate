@@ -40,6 +40,9 @@ library:
   - matrix-accelerate
   - random
   - normaldistribution
+  - bytestring
+  - binary
+  - data-binary-ieee754
 
 
 tests:

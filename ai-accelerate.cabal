@@ -39,6 +39,7 @@ library
       ML.AI.Optim.Mom
       ML.AI.Optim.RMS
       ML.AI.OptimANN
+      ML.AI.SafeTensors
       ML.AI.Types
   other-modules:
       Paths_ai_accelerate
@@ -50,6 +51,9 @@ library
   build-depends:
       accelerate
     , base >=4.7 && <5
+    , binary
+    , bytestring
+    , data-binary-ieee754
     , matrix-accelerate
     , normaldistribution
     , random
