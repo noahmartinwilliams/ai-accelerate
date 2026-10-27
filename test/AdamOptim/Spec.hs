@@ -4,8 +4,11 @@ module Main where
 import Data.Array.Accelerate as A
 import Data.Array.Accelerate.LLVM.Native -- Change to "import Data.Array.Accelerate.LLVM.Native" if you don't have a GPU.
 import Data.Array.Accelerate.Matrix
+import Data.Array.Accelerate.Debug.Trace
+import Data.Text as T
 
 import Data.ByteString as BS
+import Data.ByteString.Lazy as BSL
 
 import ML.AI.ActFuncs
 import ML.AI.ANN
@@ -17,6 +20,7 @@ import ML.AI.OptimANN
 import ML.AI.Optim.Adam
 import ML.AI.Optim.Mom
 import ML.AI.Optim.RMS
+import ML.AI.SafeTensors
 import ML.AI.Types
 
 import Prelude as P
@@ -28,12 +32,12 @@ import Text.Printf
 data BatchSize = BatchSize
 data Grad = Grad
 
-mkBS :: Int -> ByteString -> ByteString -> [(ByteString , ByteString)]
+mkBS :: Int -> BS.ByteString -> BS.ByteString -> [(BS.ByteString , BS.ByteString)]
 mkBS numImgsPerSamp imgBS labelBS = do
     let imgFormat = BS.drop 16 imgBS -- Skip metadata.
         labelFormat = BS.drop 8 labelBS
     intern numImgsPerSamp imgFormat labelFormat where
-        intern :: Int -> ByteString -> ByteString -> [(ByteString, ByteString)]
+        intern :: Int -> BS.ByteString -> BS.ByteString -> [(BS.ByteString, BS.ByteString)]
         intern _ bs _ | BS.null bs = []
         intern n imgs labels = do
             let imgs' = BS.take (n * 28 * 28) imgs
@@ -42,25 +46,25 @@ mkBS numImgsPerSamp imgBS labelBS = do
                 labelsNext = BS.drop n labels
             (imgs', labels') : (intern n imgsNext labelsNext)
 
-mkSamps :: Int -> [(ByteString, ByteString)] -> [(Matrix Double, Matrix Double)] -- Note: The matrices need to be transposed.
+mkSamps :: Int -> [(BS.ByteString, BS.ByteString)] -> [(Matrix Double, Matrix Double)] -- Note: The matrices need to be transposed.
 mkSamps numImgsPerSamp ls = do
     let (imgs, labels) = P.unzip ls
         labels' = getLabels numImgsPerSamp labels 
         imgs' = getImgs numImgsPerSamp imgs
     P.zip imgs' labels' where
 
-        getImgs :: Int -> [ByteString] -> [Matrix Double]
+        getImgs :: Int -> [BS.ByteString] -> [Matrix Double]
         getImgs _ [] = []
         getImgs n ( h : t ) = (A.fromList (Z:.(28*28):.n) (P.map (\x -> ((P.fromIntegral x :: Double) / 255.0)) (BS.unpack h))) : (getImgs n t)
 
-        getLabels :: Int -> [ByteString] -> [Matrix Double]
+        getLabels :: Int -> [BS.ByteString] -> [Matrix Double]
         getLabels _ [] = []
         getLabels n (h : t) = do
             let labels = getLabels' h
                 labels' = A.fromList (Z:.10:.n) (P.foldr (P.++) [] labels) :: Matrix Double
             labels' : (getLabels n t)
 
-        getLabels' :: ByteString -> [[Double]]
+        getLabels' :: BS.ByteString -> [[Double]]
         getLabels' bs | BS.null bs = []
         getLabels' bs = do
             let bs' = (BS.unpack (BS.take 1 bs)) P.!! 0
@@ -86,8 +90,8 @@ tester fn ( h : t) = do
         ret = (P.sum (P.zipWith (\x -> \y -> (x - y) * (x - y)) (A.toList (P.snd h)) outp' )) 
     ret + (tester fn t)
 
-trainFn :: ANNBlInfo -> Acc (Scalar Double, (Vector Int, Vector Double)) -> Acc (Matrix Double, Matrix Double) -> Acc (Scalar Double, (Vector Int, Vector Double))
-trainFn bli optimV sample = do
+trainFn :: Int -> ANNBlInfo -> Acc (Scalar Double, (Vector Int, Vector Double)) -> Acc (Matrix Double, Matrix Double) -> Acc (Scalar Double, (Vector Int, Vector Double))
+trainFn batchSize bli optimV sample = do
     let (inp, outp) = A.unlift sample :: (Acc (Matrix Double), Acc (Matrix Double))
         inp' = A.transpose inp
         outp' = A.transpose outp
@@ -98,7 +102,8 @@ trainFn bli optimV sample = do
         nullErr = use (A.fromList (Z) [0.0] :: Scalar Double)
         final = (awhile condition (trainFn' ann) (A.lift (inp', outp', nullg, nullErr)) :: Acc (Matrix Double, Matrix Double, (Vector Int, Vector Double), Scalar Double))
         (_, _, grads, bpe) = A.unlift final :: (Acc (Matrix Double), Acc (Matrix Double), Acc (Vector Int, Vector Double), Acc (Scalar Double))
-        optim' = (bpANN optimizer (AccBlock grads Inp)) 
+        (vi, vd) = A.unlift grads :: (Acc (Vector Int), Acc (Vector Double))
+        optim' = bpANN optimizer (AccBlock (A.lift (vi, A.map (\x -> x / (constant (P.fromIntegral batchSize) :: Exp Double)) vd)) Inp) 
         (AccBlock optim'' _) = annOptim2block optim'
     A.lift (bpe, optim'') where
 
@@ -151,10 +156,10 @@ main = do
     let batchSize = 60
         g = mkStdGen 100
         bsTrain = mkBS batchSize trainImgs trainLabels
-        sampsTrain = P.take 3 (mkSamps batchSize bsTrain)
+        sampsTrain = P.take 10 (mkSamps batchSize bsTrain)
         bsTest = mkBS 1 testImgs testLabels
-        sampsTest = P.take 10 (mkSamps 1 bsTest)
-        (bli, ann) = mkANN g (28*28) ReLU [(32, ReLU), (32, ReLU), (10, SoftMax)] Inp Outp
+        sampsTest = (mkSamps 1 bsTest)
+        (bli, ann) = mkANN g (28*28) ReLU [(32, ReLU), (10, SoftMax)] Inp Outp
         alpha = constant 0.0001
         b1 = constant 0.9
         b2 = constant 0.999
@@ -165,15 +170,18 @@ main = do
         testFn testable = runN (\x -> let (_, AccMat y _ _) = inferANN testable (AccMat x Inp One) in y)
         testedInitial = tester (testFn ann) sampsTest
         (AccBlock optimBlock _) = annOptim2block optimANN
-        trainer = runN (trainFn bli)
+        trainer = runN (trainFn batchSize bli)
         optimBlockRan = run optimBlock
     finalTrained <- (getTrained trainer sampsTrain (A.fromList (Z) [0.0], optimBlockRan))
     let annFinal = block2annOptim bli (AccBlock (use finalTrained) (ANNBlock, Inp, Outp)) :: OptimANN AdamOptim AdamOptim Double Inp Outp
         (_, annFinal') = splitOptimANN annFinal
         testedFinal = tester (testFn annFinal') sampsTest
+        (_, (AccBlock annFinal'' _)) = ann2block annFinal'
+        annFinal2 = run annFinal''
     if testedInitial P.> testedFinal
-    then
+    then do
         putStrLn ("\nSuccess. Initial error: " P.++ (P.show testedInitial) P.++ ". Final error: " P.++ (P.show testedFinal))
+        BSL.writeFile "adam.safetensor" (block2safeTensors 3 "adamANN" (A.toList (P.fst annFinal2), A.toList (P.snd annFinal2)))
     else do
         putStrLn ("\nFailure. Initial error: " P.++ (P.show testedInitial) P.++ ". Final error: " P.++ (P.show testedFinal))
         exitFailure

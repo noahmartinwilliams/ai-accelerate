@@ -18,6 +18,21 @@ l2block' l = do
     ret
     
 
+
+inferLayer :: (A.Fractional f) => Layer f a b -> AccMat f a One -> AccMat f b One
+inferLayer p inp = do
+    let w = lweights p
+        biases = lbiases p 
+    (w `matMul` inp) `matAdd` biases
+
+gradLayer :: (A.Fractional f) => Layer f a b -> AccMat f a One -> AccMat f b One -> (AccMat f b a, AccMat f b One, AccMat f a One)
+gradLayer l prevInp bp = do
+    let lw = matTransp (prevInp `matMul` (matTransp bp))
+        lb = bp
+        bp' = ( (matTransp (lweights l)) `matMul` bp)
+    (lw, lb, bp')
+    
+
 block2l' :: (A.Rational f) => Acc (Vector Int, Vector f) -> a -> b -> (Layer f a b, Acc (Vector Int, Vector f))
 block2l' block a b = do
     let (vi, vd) = A.unlift block 
@@ -37,17 +52,3 @@ block2l :: (A.Rational f) => AccBlock f (Layer f a b ) -> a -> b -> (Layer f a b
 block2l (AccBlock block c) a b = do
     let (params, ret) = block2l' block a b
     (params, (AccBlock ret c))
-
-inferLayer :: (A.Fractional f) => Layer f a b -> AccMat f a One -> AccMat f b One
-inferLayer p inp = do
-    let w = lweights p
-        biases = lbiases p 
-    (w `matMul` inp) `matAdd` biases
-
-gradLayer :: (A.Fractional f) => Layer f a b -> AccMat f a One -> AccMat f b One -> (AccMat f b a, AccMat f b One, AccMat f a One)
-gradLayer l prevInp bp = do
-    let lw = matTransp (prevInp `matMul` (matTransp bp))
-        lb = bp
-        bp' = ( (matTransp (lweights l)) `matMul` bp)
-    (lw, lb, bp')
-    

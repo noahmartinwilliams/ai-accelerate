@@ -13,8 +13,8 @@ import Prelude as P
 
 gradAddDs :: forall f c. (A.Floating f) => AccBlock f c -> AccBlock f c -> AccBlock f c 
 gradAddDs (AccBlock block1 c) (AccBlock block2 _) = do
-    let (vi, block1') = A.unlift block1 :: (Acc (Vector Int), Acc (Vector f))
-        (_, block2') = A.unlift block2 :: (Acc (Vector Int), Acc (Vector f))
+    let (_, block1') = A.unlift block1 :: (Acc (Vector Int), Acc (Vector f))
+        (vi, block2') = A.unlift block2 :: (Acc (Vector Int), Acc (Vector f))
         block3 = A.zipWith (+) block1' block2' 
     AccBlock (A.lift (vi, block3) :: Acc (Vector Int, Vector f)) c
 

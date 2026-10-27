@@ -4,7 +4,6 @@ module ML.AI.Block where
 import Data.Array.Accelerate as A
 import Data.Array.Accelerate.Matrix
 import ML.AI.Misc
-import ML.AI.Types
 
 
 type Block f = (Vector Int, Vector f)
@@ -31,18 +30,6 @@ accMatGetBlock (AccMat f _ _) c = do
         is = rep0 (constant 1) (A.unit m)
         is' = rep0 (constant 1) (A.unit n) 
     AccBlock (A.lift (is A.++ is', ds)) c
-
-accGetFirstIntBlock :: forall f a. (A.Fractional f) => AccBlock f a -> (Exp Int, AccBlock f a )
-accGetFirstIntBlock (AccBlock inp a) = do
-    let (vi, vd) = A.unlift inp :: (Acc (Vector Int), Acc (Vector f))
-    ((vi A.!! (constant 0)), AccBlock (A.lift (A.drop (constant 1) vi, vd)) a)
-
-accTakeNFs :: forall f a. (A.Fractional f) => AccBlock f a -> Exp Int -> (Acc (Vector f), AccBlock f a)
-accTakeNFs (AccBlock v a) num = do
-    let (vi, vd) = A.unlift v :: (Acc (Vector Int), Acc (Vector f))
-        vd' = A.take num vd
-        vd'' = A.drop num vd
-    (vd', AccBlock (A.lift (vi, vd'')) a)
 
 accEmptyBlock :: (A.Fractional f) => a -> AccBlock f a
 accEmptyBlock a = do

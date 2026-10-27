@@ -43,7 +43,7 @@ mkANN' g numInputs ((numOuts, af) : layerSpecRest) a b = do
     let numWeights = numInputs * numOuts
     let rs = normals g :: [f]
         g' = mkStdGen ((randoms g :: [Int]) P.!! 0)
-        rs' = heWeightInit numInputs (P.take (numWeights + numOuts) rs)
+        rs' = heWeightInit (numInputs ) (P.take (numWeights + numOuts) rs)
         rsW = P.take numWeights rs'
         rsB = P.take numOuts (P.drop numWeights rs')
         layer = Layer { lweights = AccMat (use (A.fromList (Z:.numOuts:.numInputs) rsW)) b a, lbiases = AccMat (use (A.fromList (Z:.numOuts:.1) rsB)) b One}
