@@ -37,7 +37,7 @@ library:
   source-dirs: src
   dependencies:
   - accelerate
-  - matrix-accelerate
+  - matrix-accelerate >= 0.2
   - random
   - normaldistribution
   - bytestring
@@ -55,7 +55,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - ai-accelerate
-    - matrix-accelerate
+    - matrix-accelerate >= 0.2
     - accelerate
     - accelerate-llvm-ptx
     - random
@@ -70,7 +70,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - ai-accelerate
-    - matrix-accelerate
+    - matrix-accelerate >= 0.2
     - accelerate
     - accelerate-llvm-ptx
     - random
@@ -86,7 +86,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - ai-accelerate
-    - matrix-accelerate
+    - matrix-accelerate >= 0.2
     - accelerate
     - accelerate-llvm-ptx
     - random
@@ -103,7 +103,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - ai-accelerate
-    - matrix-accelerate
+    - matrix-accelerate >= 0.2
     - accelerate
     - accelerate-llvm-ptx
     - random
@@ -119,7 +119,7 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - ai-accelerate
-    - matrix-accelerate
+    - matrix-accelerate >= 0.2
     - accelerate
     - accelerate-llvm-ptx
     - accelerate-llvm-native

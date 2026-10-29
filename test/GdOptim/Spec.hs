@@ -101,7 +101,7 @@ main = do
         testResults' = testLine fn' perfectLine
     if testResults' P.< testResults
     then
-        putStrLn (" GdOptim test succeeded. Got error0: " P.++ (show testResults) P.++ ", error1: " P.++ (show testResults') )
+        putStrLn ("Succeeded. Got error0: " P.++ (show testResults) P.++ ", error1: " P.++ (show testResults') )
     else do
-        putStrLn (" GdOptim test failed. Got error0: " P.++ (show testResults) P.++ ", error1: " P.++ (show testResults') )
+        putStrLn ("Failed. Got error0: " P.++ (show testResults) P.++ ", error1: " P.++ (show testResults') )
         exitFailure

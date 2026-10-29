@@ -53,7 +53,7 @@ mkANN' g numInputs ((numOuts, af) : layerSpecRest) a b = do
     (ANNBlInfo (af : restBlInfo),  ANN (annLayer : nextLayers') a b)
 
 heWeightInit :: (P.Floating f) => Int -> [f] -> [f]
-heWeightInit numIns fs = let numInsF = P.fromIntegral numIns in P.map  (\x -> x * 2.0 / (sqrt numInsF)) fs
+heWeightInit numIns fs = let numInsF = P.fromIntegral numIns in P.map  (\x -> x * (sqrt (2.0 / numInsF))) fs
 
 
 block2annLayer :: forall f a b. (A.Fractional f) => ActFunc -> AccBlock f (ANNBlock, a, b) -> (ANNLayer f a b, AccBlock f (ANNBlock, a, b))

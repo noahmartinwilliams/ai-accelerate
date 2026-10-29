@@ -1,14 +1,14 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Main where
 
+
 import Data.Array.Accelerate as A
-import Data.Array.Accelerate.LLVM.Native -- Change to "import Data.Array.Accelerate.LLVM.Native" if you don't have a GPU.
+import Data.Array.Accelerate.LLVM.Native
 import Data.Array.Accelerate.Matrix
-import Data.Array.Accelerate.Debug.Trace
-import Data.Text as T
 
 import Data.ByteString as BS
 import Data.ByteString.Lazy as BSL
+
 
 import ML.AI.ActFuncs
 import ML.AI.ANN
@@ -127,8 +127,8 @@ trainFn' :: ANN Double Inp Outp -> Acc (Matrix Double , Matrix Double, (Vector I
 trainFn' ann input = do
     let (inp, outp, grads, bpe) = A.unlift input :: (Acc (Matrix Double), Acc (Matrix Double), Acc (Vector Int, Vector Double), Acc (Scalar Double))
         (prevIns, outp') = inferANN ann (AccMat (A.take (constant 1) inp) Inp One)
-        (AccMat bp Inp One) = (derrFn MSEFn ) outp' (AccMat (A.take (constant 1) outp) Inp One)
-        (AccMat bpe' Inp One) = (errFn MSEFn) outp' (AccMat (A.take (constant 1) outp) Inp One)
+        (AccMat bp Inp One) = (derrFn LogEFn ) outp' (AccMat (A.take (constant 1) outp) Inp One)
+        (AccMat bpe' Inp One) = (errFn LogEFn) outp' (AccMat (A.take (constant 1) outp) Inp One)
         (grads', _) = gradANN ann prevIns (AccMat bp Outp One)
         gradBlock = grad2block grads' Grad
         (AccBlock gradBlock' _) = gradAddDs gradBlock (AccBlock grads Grad)
@@ -156,10 +156,10 @@ main = do
     let batchSize = 60
         g = mkStdGen 100
         bsTrain = mkBS batchSize trainImgs trainLabels
-        sampsTrain = P.take 10 (mkSamps batchSize bsTrain)
+        sampsTrain = (mkSamps batchSize bsTrain) 
         bsTest = mkBS 1 testImgs testLabels
         sampsTest = (mkSamps 1 bsTest)
-        (bli, ann) = mkANN g (28*28) ReLU [(32, ReLU), (10, SoftMax)] Inp Outp
+        (bli, ann) = mkANN g (28*28) ReLU [(32, ReLU), (32, ReLU), (10, SoftMax)] Inp Outp
         alpha = constant 0.0001
         b1 = constant 0.9
         b2 = constant 0.999
