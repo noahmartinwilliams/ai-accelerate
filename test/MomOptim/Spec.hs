@@ -43,7 +43,7 @@ trainer' bli ann samp = do
         (prevIns, (AccMat trueOut _ One)) = inferOptimANN (AccMat inp Inp One) annTyped
         trueOut' = AccMat trueOut Outp One
         bp = derrFn MSEFn (AccMat outp Outp One) trueOut'
-        (grads, _) = gradOptimANN annTyped prevIns bp
+        (grads, _) = gradOptimANN 1 annTyped prevIns bp
         ann' = bpANN annTyped (grad2block grads Inp)
         (AccBlock ann'' _) = annOptim2block ann'
     ann''

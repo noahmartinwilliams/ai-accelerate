@@ -18,19 +18,22 @@ gradAddDs (AccBlock block1 c) (AccBlock block2 _) = do
         block3 = A.zipWith (+) block1' block2' 
     AccBlock (A.lift (vi, block3) :: Acc (Vector Int, Vector f)) c
 
-gradANN :: (P.Fractional f, A.Floating f, A.Ord f) => ANN f a b -> [AccMat f a One] -> AccMat f b One -> ([(AccMat f b a, AccMat f b One)], AccMat f a One)
-gradANN (ANN _ a _)  [] (AccMat amat _ _) = ([], AccMat amat a One)
-gradANN (ANN [] _ _ ) _ (AccMat _ _ _) = undefined
-gradANN (ANN (ah : at) a b) (h : t) bp = do
-    let (l, (AccMat bprop _ One)) = gradANN (ANN at a b) t bp
+gradANN :: forall f a b. (P.Fractional f, A.Floating f, A.Ord f) => Int -> ANN f a b -> [AccMat f a One] -> AccMat f b One -> ([(AccMat f b a, AccMat f b One)], AccMat f a One)
+gradANN _ (ANN _ a _)  [] (AccMat amat _ _) = ([], AccMat amat a One)
+gradANN _ (ANN [] _ _ ) _ (AccMat _ _ _) = undefined
+gradANN bsize (ANN (ah : at) a b) (h : t) bp = do
+    let (l, (AccMat bprop _ One)) = gradANN bsize (ANN at a b) t bp
         bprop' = AccMat bprop b One
         af = annActFunc ah
         dbp = dactFunc af bprop'
         (wg, bg, bprop'') = gradLayer (annL ah) h dbp
-    ((wg, bg) : l, bprop'')
+        bsize' = P.fromIntegral bsize :: f
+        wg' = ((constant 1.0) / (constant bsize')) `matScale` wg
+        bg' = ((constant 1.0) / (constant bsize')) `matScale` bg
+    ((wg', bg') : l, bprop'')
 
-gradOptimANN :: (P.Fractional f, A.Fractional f, A.Ord f) => OptimANN o o' f a b -> [AccMat f a One] -> AccMat f b One -> ([(AccMat f b a, AccMat f b One)], AccMat f a One)
-gradOptimANN (OptimANN ls a b) ls' bp = let ann = (ANN (P.map oalLayer ls) a b) in gradANN ann ls' bp
+gradOptimANN :: (P.Fractional f, A.Fractional f, A.Ord f) => Int -> OptimANN o o' f a b -> [AccMat f a One] -> AccMat f b One -> ([(AccMat f b a, AccMat f b One)], AccMat f a One)
+gradOptimANN bsize (OptimANN ls a b) ls' bp = let ann = (ANN (P.map oalLayer ls) a b) in gradANN bsize ann ls' bp
 
 grad2block :: forall float a b c. (A.Fractional float) => [(AccMat float b a, AccMat float b One)] -> c -> AccBlock float c
 grad2block [] c = accEmptyBlock c

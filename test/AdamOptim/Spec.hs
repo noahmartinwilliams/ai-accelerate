@@ -1,14 +1,13 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, TypeOperators #-}
 module Main where
 
 
 import Data.Array.Accelerate as A
-import Data.Array.Accelerate.LLVM.Native
+import Data.Array.Accelerate.LLVM.PTX
 import Data.Array.Accelerate.Matrix
 
 import Data.ByteString as BS
 import Data.ByteString.Lazy as BSL
-
 
 import ML.AI.ActFuncs
 import ML.AI.ANN
@@ -46,7 +45,7 @@ mkBS numImgsPerSamp imgBS labelBS = do
                 labelsNext = BS.drop n labels
             (imgs', labels') : (intern n imgsNext labelsNext)
 
-mkSamps :: Int -> [(BS.ByteString, BS.ByteString)] -> [(Matrix Double, Matrix Double)] -- Note: The matrices need to be transposed.
+mkSamps :: Int -> [(BS.ByteString, BS.ByteString)] -> [(Matrix Double, Matrix Double)] 
 mkSamps numImgsPerSamp ls = do
     let (imgs, labels) = P.unzip ls
         labels' = getLabels numImgsPerSamp labels 
@@ -93,24 +92,21 @@ tester fn ( h : t) = do
 trainFn :: Int -> ANNBlInfo -> Acc (Scalar Double, (Vector Int, Vector Double)) -> Acc (Matrix Double, Matrix Double) -> Acc (Scalar Double, (Vector Int, Vector Double))
 trainFn batchSize bli optimV sample = do
     let (inp, outp) = A.unlift sample :: (Acc (Matrix Double), Acc (Matrix Double))
-        inp' = A.transpose inp
-        outp' = A.transpose outp
         (_, optimV') = A.unlift optimV :: (Acc (Scalar Double), Acc (Vector Int, Vector Double))
         optimizer = block2annOptim bli (AccBlock optimV' (ANNBlock, Inp, Outp))
         (_, ann) = splitOptimANN optimizer
         nullg = A.unlift $ getNullGrads optimizer :: (Acc (Vector Int), Acc (Vector Double))
         nullErr = use (A.fromList (Z) [0.0] :: Scalar Double)
-        final = (awhile condition (trainFn' ann) (A.lift (inp', outp', nullg, nullErr)) :: Acc (Matrix Double, Matrix Double, (Vector Int, Vector Double), Scalar Double))
+        final = (awhile condition (trainFn' batchSize ann) (A.lift (inp, outp, nullg, nullErr)) :: Acc (Matrix Double, Matrix Double, (Vector Int, Vector Double), Scalar Double))
         (_, _, grads, bpe) = A.unlift final :: (Acc (Matrix Double), Acc (Matrix Double), Acc (Vector Int, Vector Double), Acc (Scalar Double))
-        (vi, vd) = A.unlift grads :: (Acc (Vector Int), Acc (Vector Double))
-        optim' = bpANN optimizer (AccBlock (A.lift (vi, A.map (\x -> x / (constant (P.fromIntegral batchSize) :: Exp Double)) vd)) Inp) 
+        optim' = bpANN optimizer (AccBlock grads Inp) 
         (AccBlock optim'' _) = annOptim2block optim'
     A.lift (bpe, optim'') where
 
         condition :: Acc (Matrix Double, Matrix Double, (Vector Int, Vector Double), Scalar Double) -> Acc (Scalar Bool)
         condition t = do
             let (inp'', _, _, _) = A.unlift t :: (Acc (Matrix Double), Acc (Matrix Double), Acc (Vector Int, Vector Double), Acc (Scalar Double))
-            (A.unit ((A.null inp'') A.== constant False))
+            (A.unit ((A.null inp'') A.== (constant False)))
 
         getNullGrads :: OptimANN AdamOptim AdamOptim Double Inp Outp -> Acc (Vector Int, Vector Double) 
         getNullGrads (OptimANN layers _ _) = do
@@ -123,17 +119,17 @@ trainFn batchSize bli optimV sample = do
                 b' = accMatGetBlock (matMap b (\_ -> constant 0.0)) Grad
             appendAccBlocks w' b' Grad
 
-trainFn' :: ANN Double Inp Outp -> Acc (Matrix Double , Matrix Double, (Vector Int, Vector Double), Scalar Double) -> Acc (Matrix Double, Matrix Double, (Vector Int, Vector Double), Scalar Double)
-trainFn' ann input = do
+trainFn' :: Int -> ANN Double Inp Outp -> Acc (Matrix Double , Matrix Double, (Vector Int, Vector Double), Scalar Double) -> Acc (Matrix Double, Matrix Double, (Vector Int, Vector Double), Scalar Double)
+trainFn' bsize ann input = do
     let (inp, outp, grads, bpe) = A.unlift input :: (Acc (Matrix Double), Acc (Matrix Double), Acc (Vector Int, Vector Double), Acc (Scalar Double))
         (prevIns, outp') = inferANN ann (AccMat (A.take (constant 1) inp) Inp One)
         (AccMat bp Inp One) = (derrFn LogEFn ) outp' (AccMat (A.take (constant 1) outp) Inp One)
         (AccMat bpe' Inp One) = (errFn LogEFn) outp' (AccMat (A.take (constant 1) outp) Inp One)
-        (grads', _) = gradANN ann prevIns (AccMat bp Outp One)
+        (grads', _) = gradANN bsize ann prevIns (AccMat bp Outp One)
         gradBlock = grad2block grads' Grad
-        (AccBlock gradBlock' _) = gradAddDs gradBlock (AccBlock grads Grad)
-        inp' = A.drop (constant 1) inp
-        outp'' = A.drop (constant 1) outp
+        (AccBlock gradBlock' _) = gradAddDs (AccBlock grads Grad) gradBlock
+        inp' = A.drop (constant 1) ( inp)
+        outp'' = A.drop (constant 1) ( outp)
     (A.lift (inp', outp'', gradBlock', A.zipWith (+) bpe (A.sum (A.flatten bpe') )))
 
 type TrainFn = (Scalar Double, (Vector Int, Vector Double)) -> (Matrix Double, Matrix Double) -> (Scalar Double, (Vector Int, Vector Double))
@@ -159,8 +155,8 @@ main = do
         sampsTrain = (mkSamps batchSize bsTrain) 
         bsTest = mkBS 1 testImgs testLabels
         sampsTest = (mkSamps 1 bsTest)
-        (bli, ann) = mkANN g (28*28) ReLU [(32, ReLU), (32, ReLU), (10, SoftMax)] Inp Outp
-        alpha = constant 0.0001
+        (bli, ann) = mkANN g (28*28) ReLU [(32, ReLU), (10, SoftMax)] Inp Outp
+        alpha = constant 0.001
         b1 = constant 0.9
         b2 = constant 0.999
         basicMat = use (A.fromList (Z:.1:.1) [1.0])

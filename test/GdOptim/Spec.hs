@@ -101,7 +101,7 @@ main = do
         testResults' = testLine fn' perfectLine
     if testResults' P.< testResults
     then
-        putStrLn ("Succeeded. Got error0: " P.++ (show testResults) P.++ ", error1: " P.++ (show testResults') )
+        putStrLn ("Success. Got error0: " P.++ (show testResults) P.++ ", error1: " P.++ (show testResults') )
     else do
         putStrLn ("Failed. Got error0: " P.++ (show testResults) P.++ ", error1: " P.++ (show testResults') )
         exitFailure

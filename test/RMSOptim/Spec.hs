@@ -41,7 +41,7 @@ trainer bli optimANN sample = do
         optimANN' = block2annOptim bli (AccBlock optimANN (ANNBlock, Inp, Outp)) :: OptimANN RMSOptim RMSOptim Double Inp Outp
         (grads, realOutp) = inferOptimANN inp' optimANN'
         err = (derrFn MSEFn ) (AccMat outp Outp One) realOutp
-        (gradiented, _) = gradOptimANN optimANN' grads err
+        (gradiented, _) = gradOptimANN 1 optimANN' grads err
         bped = bpANN optimANN' (grad2block gradiented Inp)
         (AccBlock ret _) = annOptim2block bped
     ret

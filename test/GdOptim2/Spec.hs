@@ -39,7 +39,7 @@ trainANN ann sample = do
     let (prevIns, (AccMat trueOut _ One)) = inferOptimANN (AccMat inp AInp One) ann
         trueOut' = AccMat trueOut AOutp One
         bp = ((derrFn MSEFn ) (AccMat outp AOutp One) trueOut')
-        (grads, _) = gradOptimANN ann prevIns bp
+        (grads, _) = gradOptimANN 1 ann prevIns bp
         ann' = bpANN ann (grad2block grads AInp)
     ann'
         

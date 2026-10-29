@@ -43,6 +43,7 @@ library:
   - bytestring
   - binary
   - data-binary-ieee754
+  - text
 
 
 tests:

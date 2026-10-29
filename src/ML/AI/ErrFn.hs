@@ -14,7 +14,7 @@ errFn MSEFn = do
         fn x y = matMap (squared (x `matSub` y)) (\z -> z * half)
     fn
 errFn LogEFn = do
-    let f x y = matZipWith (\answer -> \actual -> -(answer * (log actual) + ((constant 1.0 :: Exp f) - answer) * (log ((constant 1.0 :: Exp f) - actual)))) x y
+    let f x y = matZipWith (\answer -> \actual -> -(answer * (log (actual + epsilon))  )) x y 
     f
 
 derrFn :: forall f a b. (A.Floating f, P.Fractional f) => ErrFn -> (AccMat f a b -> AccMat f a b -> AccMat f a b)
@@ -23,5 +23,8 @@ derrFn MSEFn = do
     fn
 derrFn LogEFn = do
     let one = constant 1.0 :: Exp f
-    let fn m n = matZipWith (\x -> \y -> ((one - x)/(one-y))-(x/y)) m n
+    let fn m n = matZipWith (\x -> \y -> y - x) m n
     fn 
+
+epsilon :: (A.Floating f, P.Fractional f) => Exp f
+epsilon = constant 0.00000001
