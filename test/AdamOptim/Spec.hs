@@ -5,12 +5,9 @@ module Main where
 import Data.Array.Accelerate as A
 import Data.Array.Accelerate.LLVM.PTX
 import Data.Array.Accelerate.Matrix
-import Data.Array.Accelerate.Debug.Trace
 
 import Data.ByteString as BS
 import Data.ByteString.Lazy as BSL
-
-import Data.Text as T
 
 import ML.AI.ActFuncs
 import ML.AI.ANN
@@ -58,13 +55,13 @@ mkSamps numImgsPerSamp ls = do
 
         getImgs :: Int -> [BS.ByteString] -> [Matrix Double]
         getImgs _ [] = []
-        getImgs n ( h : t ) = (A.fromList (Z:.(28*28):.n) (P.map (\x -> ((P.fromIntegral x :: Double) / 255.0)) (BS.unpack h))) : (getImgs n t)
+        getImgs n ( h : t ) = (A.fromList (Z:.n:.(28*28)) (P.map (\x -> ((P.fromIntegral x :: Double) / 255.0)) (BS.unpack h))) : (getImgs n t)
 
         getLabels :: Int -> [BS.ByteString] -> [Matrix Double]
         getLabels _ [] = []
         getLabels n (h : t) = do
             let labels = getLabels' h
-                labels' = A.fromList (Z:.10:.n) (P.foldr (P.++) [] labels) :: Matrix Double
+                labels' = A.fromList (Z:.n:.10) (P.foldr (P.++) [] labels) :: Matrix Double
             labels' : (getLabels n t)
 
         getLabels' :: BS.ByteString -> [[Double]]
@@ -96,12 +93,14 @@ tester fn ( h : t) = do
 trainFn :: Int -> ANNBlInfo -> Acc (Scalar Double, (Vector Int, Vector Double)) -> Acc (Matrix Double, Matrix Double) -> Acc (Scalar Double, (Vector Int, Vector Double))
 trainFn batchSize bli optimV sample = do
     let (inp, outp) = A.unlift sample :: (Acc (Matrix Double), Acc (Matrix Double))
+        inp' = A.transpose inp
+        outp' = A.transpose outp
         (_, optimV') = A.unlift optimV :: (Acc (Scalar Double), Acc (Vector Int, Vector Double))
         optimizer = block2annOptim bli (AccBlock optimV' (ANNBlock, Inp, Outp))
         (_, ann) = splitOptimANN optimizer
         nullg = A.unlift $ getNullGrads optimizer :: (Acc (Vector Int), Acc (Vector Double))
         nullErr = use (A.fromList (Z) [0.0] :: Scalar Double)
-        final = (awhile condition (trainFn' batchSize ann) (A.lift (inp, outp, nullg, nullErr)) :: Acc (Matrix Double, Matrix Double, (Vector Int, Vector Double), Scalar Double))
+        final = (awhile condition (trainFn' batchSize ann) (A.lift (inp', outp', nullg, nullErr)) :: Acc (Matrix Double, Matrix Double, (Vector Int, Vector Double), Scalar Double))
         (_, _, grads, bpe) = A.unlift final :: (Acc (Matrix Double), Acc (Matrix Double), Acc (Vector Int, Vector Double), Acc (Scalar Double))
         optim' = bpANN optimizer (AccBlock grads Inp) 
         (AccBlock optim'' _) = annOptim2block optim'
@@ -160,15 +159,15 @@ main = do
         sampsTrain = (mkSamps batchSize bsTrain) 
         bsTest = mkBS 1 testImgs testLabels
         sampsTest = (mkSamps 1 bsTest)
-        (bli, ann) = mkANN g (28*28) ReLU [(32, ReLU), (10, SoftMax)] Inp Outp
-        alpha = constant 0.001
+        (bli, ann) = mkANN g (28*28) ReLU [(128, ReLU), (64, ReLU), (10, SoftMax)] Inp Outp
+        alpha = constant 0.00001
         b1 = constant 0.9
         b2 = constant 0.999
         basicMat = use (A.fromList (Z:.1:.1) [1.0])
-        optW = AdamOptim { adamoBeta1t = b1, adamoBeta2t = b2, adamoMomentum = MomentOptim { momoAlpha = alpha, momoBeta = b1, momoVelocity = AccMat basicMat Outp Inp}, adamoRMS = RMSOptim { rmsoAlpha = alpha, rmsoGamma = b2, rmsoGradAvg = AccMat basicMat Outp Inp}}
-        optB = AdamOptim { adamoBeta1t = b1, adamoBeta2t = b2, adamoMomentum = MomentOptim { momoAlpha = alpha, momoBeta = b1, momoVelocity = AccMat basicMat Outp One}, adamoRMS = RMSOptim { rmsoAlpha = alpha, rmsoGamma = b2, rmsoGradAvg = AccMat basicMat Outp One}}
+        optW = AdamOptim { adamoBeta1t = constant 1.0, adamoBeta2t = constant 1.0, adamoMomentum = MomentOptim { momoAlpha = alpha, momoBeta = b1, momoVelocity = AccMat basicMat Outp Inp}, adamoRMS = RMSOptim { rmsoAlpha = alpha, rmsoGamma = b2, rmsoGradAvg = AccMat basicMat Outp Inp}}
+        optB = AdamOptim { adamoBeta1t = constant 1.0, adamoBeta2t = constant 1.0, adamoMomentum = MomentOptim { momoAlpha = alpha, momoBeta = b1, momoVelocity = AccMat basicMat Outp One}, adamoRMS = RMSOptim { rmsoAlpha = alpha, rmsoGamma = b2, rmsoGradAvg = AccMat basicMat Outp One}}
         optimANN = mkOptimANN ann optW optB
-        testFn testable = runN (\x -> let (_, AccMat y _ _) = inferANN testable (AccMat x Inp One) in y)
+        testFn testable = runN (\x -> let (_, AccMat y _ _) = inferANN testable (matTransp (AccMat x One Inp)) in y)
         testedInitial = tester (testFn ann) sampsTest
         (AccBlock optimBlock _) = annOptim2block optimANN
         trainer = runN (trainFn batchSize bli)
@@ -182,7 +181,7 @@ main = do
     if testedInitial P.> testedFinal
     then do
         putStrLn ("\nSuccess. Initial error: " P.++ (P.show testedInitial) P.++ ". Final error: " P.++ (P.show testedFinal))
-        BSL.writeFile "adam.safetensor" (block2safeTensors 3 "adamANN" (A.toList (P.fst annFinal2), A.toList (P.snd annFinal2)))
+        BSL.writeFile "adam.safetensor" (block2safeTensors 4 "adamANN" (A.toList (P.fst annFinal2), A.toList (P.snd annFinal2)))
     else do
         putStrLn ("\nFailure. Initial error: " P.++ (P.show testedInitial) P.++ ". Final error: " P.++ (P.show testedFinal))
         exitFailure

@@ -24,18 +24,18 @@ data ANNBlInfo = ANNBlInfo [ActFunc] deriving(Show)
 inferANNLayer :: (P.Fractional f, A.Floating f, A.Ord f) => AccMat f a One -> [ ANNLayer f a b ] -> ([AccMat f a One], AccMat f a One)
 inferANNLayer inp [] = ([], inp)
 inferANNLayer inp@(AccMat _ inpType _) (h : t) = do
-    let x@(AccMat x' _ One) = inferLayer (annL h) inp
+    let x = inferLayer (annL h) inp
         af = annActFunc h
         (AccMat outp _ One) = actFunc af x 
         (restList, (AccMat outp' _ One)) = inferANNLayer (AccMat outp inpType One) t
-    ((AccMat x' inpType One) : restList, (AccMat outp' inpType One))
+    (inp : restList, (AccMat outp' inpType One))
 
 inferANN :: (P.Fractional f, A.Floating f, A.Ord f) => ANN f a b -> AccMat f a One -> ([AccMat f a One], AccMat f a One)
 inferANN (ANN ls _ _) inp = inferANNLayer inp ls
 
 
 mkANN :: forall f a b. (A.Floating f, Random f, P.Floating f) => StdGen -> Int -> ActFunc -> [(Int, ActFunc)] -> a -> b -> (ANNBlInfo, ANN f a b)
-mkANN g numInputs af list@((numOuts, _) : _) a b = mkANN' g numInputs ((numOuts, af) : list) a b
+mkANN g numInputs af list a b = mkANN' g numInputs list a b
 
 mkANN' :: forall f a b. (A.Floating f, Random f, P.Floating f) => StdGen -> Int -> [(Int, ActFunc)] -> a -> b -> (ANNBlInfo, ANN f a b)
 mkANN' _ _ [] a b = (ANNBlInfo [], ANN [] a b)

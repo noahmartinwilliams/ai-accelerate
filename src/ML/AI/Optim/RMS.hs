@@ -18,7 +18,7 @@ instance forall f a b. (P.Fractional f, A.Floating f) => Optim RMSOptim f a b wh
         rmsOptim { rmsoGradAvg = AccMat mat' a b}
 
     optim rmsOptim@(RMSOptim { rmsoAlpha = alpha, rmsoGamma = gamma, rmsoGradAvg = avgGrad }) params dw = do
-        let avgGrad' = (avgGrad `matAdd` (gamma `matScale` avgGrad) ) `matAdd` (((constant 1.0) - gamma) `matScale` (dw `matZipMul` dw))
+        let avgGrad' = (gamma `matScale` avgGrad ) `matAdd` (((constant 1.0) - gamma) `matScale` (dw `matZipMul` dw))
             alphaed = matMap avgGrad (\x -> alpha / (sqrt x))
             params' = params `matSub` (alphaed `matZipMul` dw)
         (rmsOptim { rmsoGradAvg = avgGrad' }, params')
