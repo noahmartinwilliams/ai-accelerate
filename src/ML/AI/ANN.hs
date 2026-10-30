@@ -35,7 +35,7 @@ inferANN (ANN ls _ _) inp = inferANNLayer inp ls
 
 
 mkANN :: forall f a b. (A.Floating f, Random f, P.Floating f) => StdGen -> Int -> ActFunc -> [(Int, ActFunc)] -> a -> b -> (ANNBlInfo, ANN f a b)
-mkANN g numInputs af list a b = mkANN' g numInputs ((numInputs, af) : list) a b
+mkANN g numInputs af list@((numOuts, _) : _) a b = mkANN' g numInputs ((numOuts, af) : list) a b
 
 mkANN' :: forall f a b. (A.Floating f, Random f, P.Floating f) => StdGen -> Int -> [(Int, ActFunc)] -> a -> b -> (ANNBlInfo, ANN f a b)
 mkANN' _ _ [] a b = (ANNBlInfo [], ANN [] a b)

@@ -22,9 +22,8 @@ derrFn MSEFn = do
     let fn x y = matMap (x `matSub` y) (\z -> - z )
     fn
 derrFn LogEFn = do
-    let one = constant 1.0 :: Exp f
-    let fn m n = matZipWith (\x -> \y -> y - x) m n
+    let fn m n = matZipWith (\x -> \y -> -x / (y + epsilon)) m n
     fn 
 
 epsilon :: (A.Floating f, P.Fractional f) => Exp f
-epsilon = constant 0.00000001
+epsilon = constant 0.00000000000001

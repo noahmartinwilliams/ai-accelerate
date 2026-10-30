@@ -28,9 +28,8 @@ inferLayer p inp = do
 gradLayer :: (A.Fractional f) => Layer f a b -> AccMat f a One -> AccMat f b One -> (AccMat f b a, AccMat f b One, AccMat f a One)
 gradLayer l prevInp bp = do
     let lw = matTransp (prevInp `matMul` (matTransp bp))
-        lb = bp
         bp' = ( (matTransp (lweights l)) `matMul` bp)
-    (lw, lb, bp')
+    (lw, bp, bp')
     
 
 block2l' :: (A.Rational f) => Acc (Vector Int, Vector f) -> a -> b -> (Layer f a b, Acc (Vector Int, Vector f))

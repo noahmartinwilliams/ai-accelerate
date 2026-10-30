@@ -5,9 +5,12 @@ module Main where
 import Data.Array.Accelerate as A
 import Data.Array.Accelerate.LLVM.PTX
 import Data.Array.Accelerate.Matrix
+import Data.Array.Accelerate.Debug.Trace
 
 import Data.ByteString as BS
 import Data.ByteString.Lazy as BSL
+
+import Data.Text as T
 
 import ML.AI.ActFuncs
 import ML.AI.ANN
@@ -24,6 +27,7 @@ import ML.AI.Types
 
 import Prelude as P
 import System.Exit
+import System.IO
 import System.Random
 
 import Text.Printf
@@ -123,14 +127,14 @@ trainFn' :: Int -> ANN Double Inp Outp -> Acc (Matrix Double , Matrix Double, (V
 trainFn' bsize ann input = do
     let (inp, outp, grads, bpe) = A.unlift input :: (Acc (Matrix Double), Acc (Matrix Double), Acc (Vector Int, Vector Double), Acc (Scalar Double))
         (prevIns, outp') = inferANN ann (AccMat (A.take (constant 1) inp) Inp One)
-        (AccMat bp Inp One) = (derrFn LogEFn ) outp' (AccMat (A.take (constant 1) outp) Inp One)
-        (AccMat bpe' Inp One) = (errFn LogEFn) outp' (AccMat (A.take (constant 1) outp) Inp One)
+        (AccMat bp Inp One) = (derrFn LogEFn ) (AccMat (A.take (constant 1) outp) Inp One) outp'
+        (AccMat bpe' Inp One) = (errFn LogEFn) (AccMat (A.take (constant 1) outp) Inp One) outp'
         (grads', _) = gradANN bsize ann prevIns (AccMat bp Outp One)
         gradBlock = grad2block grads' Grad
         (AccBlock gradBlock' _) = gradAddDs (AccBlock grads Grad) gradBlock
         inp' = A.drop (constant 1) ( inp)
         outp'' = A.drop (constant 1) ( outp)
-    (A.lift (inp', outp'', gradBlock', A.zipWith (+) bpe (A.sum (A.flatten bpe') )))
+    (A.lift (inp', outp'', gradBlock', (A.zipWith (+) bpe (A.sum (A.flatten bpe') ))))
 
 type TrainFn = (Scalar Double, (Vector Int, Vector Double)) -> (Matrix Double, Matrix Double) -> (Scalar Double, (Vector Int, Vector Double))
 
@@ -141,6 +145,7 @@ getTrained _ [] (err, outp) = do
 getTrained tfn (h : t) inp = do
     let (err, outp) = tfn inp h
     putStrLn (printf "error: %.5f" ((A.toList err) P.!! 0) :: String) 
+    System.IO.appendFile "/tmp/errors.txt" ((printf "%.5f" ((A.toList err) P.!! 0) :: String) P.++ "\n")
     getTrained tfn t (err, outp)
 
 main :: IO ()
@@ -168,7 +173,7 @@ main = do
         (AccBlock optimBlock _) = annOptim2block optimANN
         trainer = runN (trainFn batchSize bli)
         optimBlockRan = run optimBlock
-    finalTrained <- (getTrained trainer sampsTrain (A.fromList (Z) [0.0], optimBlockRan))
+    finalTrained <- (getTrained trainer (P.take 600000 (P.foldr (P.++) [] (P.repeat sampsTrain))) (A.fromList (Z) [0.0], optimBlockRan))
     let annFinal = block2annOptim bli (AccBlock (use finalTrained) (ANNBlock, Inp, Outp)) :: OptimANN AdamOptim AdamOptim Double Inp Outp
         (_, annFinal') = splitOptimANN annFinal
         testedFinal = tester (testFn annFinal') sampsTest
