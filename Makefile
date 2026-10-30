@@ -1,6 +1,8 @@
 # For downloading and preprocessing data.
 
-all: data/food-calories/weight_loss.csv data/mnist/mnist-dataset.zip
+error_vs_mini_batch_number.png: data/food-calories/weight_loss.csv data/mnist/mnist-dataset.zip
+	stack test
+	./plotter.m
 	echo "done"
 
 data/food-calories/weight_loss.csv: data/food-calories/food-calories.zip
