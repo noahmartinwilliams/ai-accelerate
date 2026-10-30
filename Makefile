@@ -1,9 +1,14 @@
 # For downloading and preprocessing data.
 
-error_vs_mini_batch_number.png: data/food-calories/weight_loss.csv data/mnist/mnist-dataset.zip
-	stack test
-	./plotter.m
+all: error_vs_mini_batch_number.png
+	./bin/mnist-gui.l
 	echo "done"
+
+error_vs_mini_batch_number.png: /tmp/errors.txt
+	./bin/plotter.m
+
+/tmp/errors.txt: data/food-calories/weight_loss.csv data/mnist/mnist-dataset.zip
+	stack test
 
 data/food-calories/weight_loss.csv: data/food-calories/food-calories.zip
 	unzip data/food-calories/food-calories.zip
@@ -33,3 +38,5 @@ data/mnist/mnist-dataset.zip:
 .PHONY:
 clean:
 	rm -rf data || true
+	rm /tmp/errors.txt || true
+	rm error_vs_mini_batch_number.png || true
