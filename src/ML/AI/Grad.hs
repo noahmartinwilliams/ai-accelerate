@@ -25,13 +25,22 @@ gradANN bsize (ANN (ah : at) a b) (h : t) bp = do
     let (l, (AccMat bprop _ One)) = gradANN bsize (ANN at a b) t bp
     let bprop' = AccMat bprop b One
         af = annActFunc ah
-        x = inferLayer (annL ah) h 
-        dbp = dactFunc af x
-        (wg, bg, bprop'') = gradLayer (annL ah) h (dbp `matZipMul` bprop')
+        x = inferLayer (annL ah) h
+        delta = if af P.== SoftMax then softMaxBP x bprop' else (dactFunc af x) `matZipMul` bprop'
+        (wg, bg, bprop'') = gradLayer (annL ah) h delta
         bsize' = P.fromIntegral bsize :: f
         wg' = ((constant 1.0) / (constant bsize')) `matScale` wg
         bg' = ((constant 1.0) / (constant bsize')) `matScale` bg
     ((wg', bg') : l, bprop'')
+
+-- Softmax's Jacobian isn't diagonal, so multiplying by its element-wise derivative drops the
+-- cross terms. The full Jacobian-vector product is s * (g - sum (s * g)).
+softMaxBP :: (P.Fractional f, A.Floating f, A.Ord f) => AccMat f b One -> AccMat f b One -> AccMat f b One
+softMaxBP x g = do
+    let s = actFunc SoftMax x
+        (AccMat sg _ _) = s `matZipMul` g
+        dot = A.the (A.sum (A.flatten sg))
+    s `matZipMul` (matMap g (\y -> y - dot))
 
 gradOptimANN :: (P.Fractional f, A.Fractional f, A.Ord f) => Int -> OptimANN o o' f a b -> [AccMat f a One] -> AccMat f b One -> ([(AccMat f b a, AccMat f b One)], AccMat f a One)
 gradOptimANN bsize (OptimANN ls a b) ls' bp = let ann = (ANN (P.map oalLayer ls) a b) in gradANN bsize ann ls' bp
