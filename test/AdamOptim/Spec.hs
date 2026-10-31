@@ -181,7 +181,7 @@ main = do
     if testedInitial P.> testedFinal
     then do
         putStrLn ("\nSuccess. Initial error: " P.++ (P.show testedInitial) P.++ ". Final error: " P.++ (P.show testedFinal))
-        BSL.writeFile "adam.safetensor" (block2safeTensors 4 "adamANN" (A.toList (P.fst annFinal2), A.toList (P.snd annFinal2)))
+        BSL.writeFile "adam.safetensor" (block2safeTensors 3 "adamANN" (A.toList (P.fst annFinal2), A.toList (P.snd annFinal2)))
     else do
         putStrLn ("\nFailure. Initial error: " P.++ (P.show testedInitial) P.++ ". Final error: " P.++ (P.show testedFinal))
         exitFailure
