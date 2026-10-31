@@ -49,7 +49,7 @@ The test suites (`GdOptim`, `GdOptim2`, `MomOptim`, `RMSOptim` and `AdamOptim`) 
 export CUDA_PATH=/opt/cuda   # wherever CUDA is installed
 export PATH=$CUDA_PATH/bin:$PATH
 stack build --test --no-run-tests
-stack test
+make # To download datasets
 ```
 
 The library on its own builds without CUDA, but the test suites won't build on a machine with no CUDA toolkit, such as an Apple Silicon Mac.
