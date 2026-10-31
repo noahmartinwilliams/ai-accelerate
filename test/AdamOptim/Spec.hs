@@ -160,7 +160,7 @@ main = do
         bsTest = mkBS 1 testImgs testLabels
         sampsTest = (mkSamps 1 bsTest)
         (bli, ann) = mkANN g (28*28) ReLU [(128, ReLU), (64, ReLU), (10, SoftMax)] Inp Outp
-        alpha = constant 0.00001
+        alpha = constant 0.001
         b1 = constant 0.9
         b2 = constant 0.999
         basicMat = use (A.fromList (Z:.1:.1) [1.0])
@@ -181,7 +181,7 @@ main = do
     if testedInitial P.> testedFinal
     then do
         putStrLn ("\nSuccess. Initial error: " P.++ (P.show testedInitial) P.++ ". Final error: " P.++ (P.show testedFinal))
-        BSL.writeFile "adam.safetensor" (block2safeTensors 4 "adamANN" (A.toList (P.fst annFinal2), A.toList (P.snd annFinal2)))
+        BSL.writeFile "adam.safetensor" (block2safeTensors 3 "adamANN" (A.toList (P.fst annFinal2), A.toList (P.snd annFinal2)))
     else do
         putStrLn ("\nFailure. Initial error: " P.++ (P.show testedInitial) P.++ ". Final error: " P.++ (P.show testedFinal))
         exitFailure
