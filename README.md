@@ -16,3 +16,42 @@ What's wrong with pytorch/tensorflow?
 While some *inferior* libraries attempt to be useful both to engineers and AI researchers by giving the user tensors in python (*gasp*) that need to be put together with tons of boiler-plate, this library aims to minimize boiler-plate, be more appealing to engineers who just want to train an AI, and maybe even be useful to AI researchers (since the library is open source, AI researchers can add their own code to it, and only need to focus on writing small portions of code that only need to fit a small amount of criteria. What more could you want?). 
 
 Since this library is written in Haskell instead of python it will have the benefit of dependent types that can help align tensors whenever possible while python's lack of a type system leads to either constant error checking or runtime errors (or both). Also I don't like the direction python went in with all of it's excessive use of objects.
+
+Installation
+------------
+
+The project is built with [Stack](https://docs.haskellstack.org/). Stack downloads the right version of GHC (9.10.3, from the `lts-24.57` snapshot) the first time you build, so you don't need to install GHC yourself.
+
+1. Install Stack:
+
+   ```bash
+   # macOS
+   brew install haskell-stack
+
+   # Linux
+   curl -sSL https://get.haskellstack.org/ | sh
+   ```
+
+2. Build the library:
+
+   ```bash
+   stack build
+   ```
+
+   The first build is slow: Stack installs GHC (about 3 GB) and compiles accelerate, accelerate-llvm and the other dependencies from source.
+
+Running the tests
+-----------------
+
+The test suites (`GdOptim`, `GdOptim2`, `MomOptim`, `RMSOptim` and `AdamOptim`) depend on `accelerate-llvm-ptx`, the CUDA backend for accelerate. To build them you need an NVIDIA GPU and the [CUDA toolkit](https://developer.nvidia.com/cuda-downloads), with `nvcc` on your `PATH` or `CUDA_PATH` pointing at the install:
+
+```bash
+export CUDA_PATH=/opt/cuda   # wherever CUDA is installed
+export PATH=$CUDA_PATH/bin:$PATH
+stack build --test --no-run-tests
+stack test
+```
+
+The library on its own builds without CUDA, but the test suites won't build on a machine with no CUDA toolkit, such as an Apple Silicon Mac.
+
+The tests also need the MNIST and food-calorie datasets in `data/`. `make` downloads them from Kaggle, runs `stack test` and plots the results.
