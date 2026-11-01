@@ -1,5 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables, RankNTypes, FlexibleContexts #-}
-module ML.AI.ErrFn where
+module ML.AI.ErrFn(ErrFn(..), errFn, derrFn) where
 
 import Data.Array.Accelerate as A
 import Data.Array.Accelerate.Matrix

@@ -158,9 +158,11 @@ test-suite RMSOptim
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       accelerate
+    , accelerate-llvm-native
     , accelerate-llvm-ptx
     , ai-accelerate
     , base >=4.7 && <5
+    , list-shuffle
     , matrix-accelerate >=0.2
     , megaparsec
     , megaparsec-csv
