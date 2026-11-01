@@ -172,7 +172,7 @@ main = do
         (AccBlock optimBlock _) = annOptim2block optimANN
         trainer = runN (trainFn batchSize bli)
         optimBlockRan = run optimBlock
-    finalTrained <- (getTrained trainer (P.take 600000 (P.foldr (P.++) [] (P.repeat sampsTrain))) (A.fromList (Z) [0.0], optimBlockRan))
+    finalTrained <- (getTrained trainer sampsTrain (A.fromList (Z) [0.0], optimBlockRan))
     let annFinal = block2annOptim bli (AccBlock (use finalTrained) (ANNBlock, Inp, Outp)) :: OptimANN AdamOptim AdamOptim Double Inp Outp
         (_, annFinal') = splitOptimANN annFinal
         testedFinal = tester (testFn annFinal') sampsTest
