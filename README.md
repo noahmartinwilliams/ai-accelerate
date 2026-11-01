@@ -45,6 +45,8 @@ Running the tests
 
 The test suites (`GdOptim`, `GdOptim2`, `MomOptim`, `RMSOptim` and `AdamOptim`) depend on `accelerate-llvm-ptx`, the CUDA backend for accelerate. To build them you need an NVIDIA GPU and the [CUDA toolkit](https://developer.nvidia.com/cuda-downloads), with `nvcc` on your `PATH` or `CUDA_PATH` pointing at the install:
 
+Also you may want make (for managing datasets), curl (for downloading datasets), octave (for visualizing error loss), zip (to unzip datasets), and steel bank common lisp (for an interactive gui test that lets you draw a digit and put it through and MNIST-trained model) for some of the tests.
+
 ```bash
 export CUDA_PATH=/opt/cuda   # wherever CUDA is installed
 export PATH=$CUDA_PATH/bin:$PATH
@@ -52,6 +54,4 @@ stack build --test --no-run-tests
 make # To download datasets
 ```
 
-The library on its own builds without CUDA, but the test suites won't build on a machine with no CUDA toolkit, such as an Apple Silicon Mac.
-
-The tests also need the MNIST and food-calorie datasets in `data/`. `make` downloads them from Kaggle, runs `stack test` and plots the results.
+The library on its own builds without CUDA, but the test suites won't build on a machine with no CUDA toolkit, such as an Apple Silicon Mac (at least not yet).

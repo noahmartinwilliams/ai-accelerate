@@ -1,7 +1,6 @@
 # For downloading and preprocessing data.
 
 all: error_vs_mini_batch_number.png
-	./bin/mnist-gui.l
 	echo "done"
 
 error_vs_mini_batch_number.png: /tmp/errors.txt
