@@ -4,7 +4,7 @@ all: error_vs_mini_batch_number.png
 	echo "done"
 
 error_vs_mini_batch_number.png: /tmp/errors.txt
-	./bin/plotter.m
+	./bin/plotter.m /tmp/errors.txt error_vs_mini_batch_number.png
 
 /tmp/errors.txt: data/food-calories/weight_loss.csv data/mnist/mnist-dataset.zip
 	stack test
